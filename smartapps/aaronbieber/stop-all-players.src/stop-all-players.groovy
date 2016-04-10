@@ -25,9 +25,12 @@ definition(
 
 
 preferences {
-  section("Preferences") {
-    input(name: "players", type: "capability.musicPlayer", title: "Stop which players", multiple: true)
-    input(name: "modes", type: "mode", title: "Select mode(s)", multiple: true)
+  page(name: "pageOne") {
+    section {
+      input(name: "players", type: "capability.musicPlayer", title: "Stop which players", multiple: true)
+      input(name: "modes", type: "mode", title: "Select mode(s)", multiple: true)
+      label(name: "label", title: "Assign a name")
+    }
   }
 }
 
