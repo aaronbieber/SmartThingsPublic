@@ -28,21 +28,39 @@ definition(
   iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
 preferences {
-  section("Configuration") {
-    paragraph "This SmartApp requires the Node Sonos HTTP API server to be running on your network; tap the link below to visit the project on Github."
-    href(
-      name: "node-sonos-http-api",
-      title: "Node Sonos HTTP API",
-      style: "external",
-      url: "https://github.com/jishi/node-sonos-http-api")
+  page(name: "pageOne", title: "Speaker setup", nextPage: "pageTwo", uninstall: true) {
+    section {
+      paragraph "This SmartApp requires the Node Sonos HTTP API server to be running on your network; tap the link below to visit the project on Github."
+      href(
+        name: "node-sonos-http-api",
+        title: "Node Sonos HTTP API",
+        style: "external",
+        url: "https://github.com/jishi/node-sonos-http-api")
 
-    input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1:5005")
-    input(name: "speaker", type: "capability.musicPlayer", title: "Play on which speaker?")
-    input(name: "volume", type: "number", range: "1..100", title: "Set volume to (percent)")
-    input(name: "shuffle", type: "bool", title: "Shuffle?")
-    input(name: "repeat", type: "bool", title: "Repeat?")
-    input(name: "playlist", type: "text", title: "Sonos playlist to play")
-    input(name: "modes", type: "mode", title: "Play for which modes?", multiple: true)
+      input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1:5005")
+      input(name: "speaker", type: "capability.musicPlayer", title: "Play on which speaker?")
+      input(name: "volume", type: "number", range: "1..100", title: "Set volume to (percent)")
+      input(name: "shuffle", type: "bool", title: "Shuffle?")
+      input(name: "repeat", type: "bool", title: "Repeat?")
+      input(name: "playlist", type: "text", title: "Sonos playlist to play")
+    }
+  }
+
+  page(name: "pageTwo", title: "Trigger settings", uninstall: true) {
+    section("Mode triggers") {
+      input(name: "modes", type: "mode", title: "Play for which modes?", multiple: true)
+    }
+
+    section("Quiet hours") {
+      paragraph(
+        "If the mode change is triggered between these hours, do not play. This is useful " +
+        "if you often come home late and don't want your 'welcome home' playlist to wake the house. " +
+        "Note that if the start time is after the end time, we will assume that quiet hours cross " +
+        "the midnight boundary.")
+
+      input(name: "quietStart", type: "time", title: "Quiet from", required: false)
+      input(name: "quietEnd", type: "time", title: "Quiet until", required: false)
+    }
   }
 }
 
@@ -92,11 +110,23 @@ def modeChangeHandler(event) {
 /* Get the Node Sonos HTTP API version of a capability.musicPlayer name.
  * This is acquired by coercing the musicPlayer to a string to get its
  * SmartThings name, removing "Sonos" from the end, and lowercasing it.
+ *
+ * @param capability.musicPlayer player A music player object
+ * 
+ * @return string The music player name recognized by Node Sonos HTTP API
  */
 def getMusicPlayerName(player) {
   return player.toString().toLowerCase().replace(" sonos", "").replace(" ", "%20")
 }
 
+/* Send a command to the local Node Sonos HTTP API server. This is accomplished
+ * by proxying an HTTP GET request through your SmartThings hub using
+ * sendHubCommand().
+ *
+ * @param capability.musicPlayer speaker The musicPlayer to play on
+ * @param string                 action  The action to take (one of "shuffle", "repeat", or "playlist")
+ * @param string                 value   The action's value ("on", "off", or a playlist name)
+ */
 def sendSonosRequest(speaker, action, value) {
   def speakerName = getMusicPlayerName(speaker)
   def actionName = action.replace(" ", "%20")
