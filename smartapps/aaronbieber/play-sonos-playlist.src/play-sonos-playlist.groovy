@@ -14,14 +14,14 @@
  *
  */
 definition(
-    name: "Play Sonos Playlist",
-    namespace: "aaronbieber",
-    author: "Aaron Bieber",
-    description: "Use the Node.js Sonos HTTP server to play a Sonos playlist on one speaker when the mode changes.",
-    category: "Convenience",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
-    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+  name: "Play Sonos Playlist",
+  namespace: "aaronbieber",
+  author: "Aaron Bieber",
+  description: "Use the Node.js Sonos HTTP server to play a Sonos playlist on one speaker when the mode changes.",
+  category: "Convenience",
+  iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
+  iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
+  iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
 preferences {
   section("Configure") {
@@ -69,12 +69,10 @@ def sendSonosRequest(speaker, action, value) {
   def actionName = action.replace(" ", "%20")
   def valueName = value.toString().replace(" ", "%20")
   def command = new physicalgraph.device.HubAction(
-  method: "GET",
-  path: "/${speakerName}/${actionName}/${valueName}",
-  headers: [
-                                                   HOST: "192.168.10.10:5005"
-  ]
-  )
+    method: "GET",
+    path: "/${speakerName}/${actionName}/${valueName}",
+    headers: [HOST: "192.168.10.10:5005"])
+
   log.debug "Sending command: ${command}"
   sendHubCommand(command)
 }

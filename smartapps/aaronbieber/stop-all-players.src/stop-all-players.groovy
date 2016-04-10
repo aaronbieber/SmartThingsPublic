@@ -14,48 +14,48 @@
  *
  */
 definition(
-    name: "Stop All Players",
-    namespace: "aaronbieber",
-    author: "Aaron Bieber",
-    description: "Stop all music players.",
-    category: "Mode Magic",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
-    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+  name: "Stop All Players",
+  namespace: "aaronbieber",
+  author: "Aaron Bieber",
+  description: "Stop all music players.",
+  category: "Mode Magic",
+  iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
+  iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
+  iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
 
 preferences {
-	section("Preferences") {
-		input(name: "players", type: "capability.musicPlayer", title: "Stop which players", multiple: true)
-        input(name: "modes", type: "mode", title: "Select mode(s)", multiple: true)
-	}
+  section("Preferences") {
+    input(name: "players", type: "capability.musicPlayer", title: "Stop which players", multiple: true)
+    input(name: "modes", type: "mode", title: "Select mode(s)", multiple: true)
+  }
 }
 
 def installed() {
-	log.debug "Installed with settings: ${settings}"
+  log.debug "Installed with settings: ${settings}"
 
-	initialize()
+  initialize()
 }
 
 def updated() {
-	log.debug "Updated with settings: ${settings}"
+  log.debug "Updated with settings: ${settings}"
 
-	unsubscribe()
-	initialize()
+  unsubscribe()
+  initialize()
 }
 
 def initialize() {
-	subscribe(location, "mode", modeChangeHandler)
+  subscribe(location, "mode", modeChangeHandler)
 }
 
 def modeChangeHandler(event) {
-	def mode = event.value
-    log.debug "Mode changed to ${mode}"
-	if (settings.modes.contains(mode)) {
-    	log.debug "Mode is in the list (${settings.modes}); stopping all players"
-    	players.each{ player ->
-        	log.debug "Stopping ${player}"
-        	player.stop()
-        }
+  def mode = event.value
+  log.debug "Mode changed to ${mode}"
+  if (settings.modes.contains(mode)) {
+    log.debug "Mode is in the list (${settings.modes}); stopping all players"
+    players.each{ player ->
+      log.debug "Stopping ${player}"
+      player.stop()
     }
+  }
 }
