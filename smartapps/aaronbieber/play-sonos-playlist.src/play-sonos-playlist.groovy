@@ -48,7 +48,7 @@ preferences {
 
   page(name: "pageTwo", title: "Trigger settings", uninstall: true) {
     section("Mode triggers") {
-      input(name: "modes", type: "mode", title: "Play for which modes?", multiple: true)
+      input(name: "modes", type: "mode", title: "Play for which modes?", multiple: true, required: true)
     }
 
     section("Quiet hours") {
@@ -82,29 +82,63 @@ def initialize() {
   subscribe(location, "mode", modeChangeHandler)
 }
 
+def duringQuietHours() {
+  if (!settings.quietStart || !settings.quietEnd) {
+    log.debug "Quiet hours are not set; passing"
+    return false
+  }
+
+  // All of this insanity is thanks to the way Java handles dates and times.
+  // I would never wish this on any other human.
+  def quietStartTimeString = "1970-01-01T" + settings.quietStart.substring(11)
+  def quietEndTimeString = "1970-01-01T" + settings.quietEnd.substring(11)
+  def nowString = "1970-01-01T" + new java.text.SimpleDateFormat("HH:mm:ss.SSSZ").format(new Date())
+
+  def quietStartTimeDate = new java.text.SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss.SSSZ").parse(quietStartTimeString)
+  def quietEndTimeDate = new java.text.SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss.SSSZ").parse(quietEndTimeString)
+  def nowDate = new java.text.SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss.SSSZ").parse(nowString)
+
+  // If the start time is before midnight and the end time is after midnight,
+  // the comparisons will be exclusive. Otherwise, the comparisons are inclusive.
+  def crossesMidnight = quietStartTimeDate.compareTo(quietEndTimeDate) > 0
+  
+  return ((   crossesMidnight
+           && (   nowDate.after(quietStartTimeDate)
+               || nowDate.before(quietEndTimeDate)))
+           || (   nowDate.after(quietStartTimeDate)
+               && nowDate.before(quietEndTimeDate)))
+}
+
 def modeChangeHandler(event) {
   def mode = event.value
   log.debug "Mode changed to ${mode}"
-  if (settings.modes.contains(mode)) {
-    log.debug "Mode ${mode} is in the list of modes ${settings.modes}; playing ${settings.playlist} at vol. ${settings.volume} on ${settings.speaker}"
-    sendSonosRequest(settings.speaker, "volume", settings.volume)
-
-    sendSonosRequest(
-      settings.speaker,
-      "shuffle",
-      settings.shuffle ? "on" : "off"
-    )
-
-    sendSonosRequest(
-      settings.speaker,
-      "repeat",
-      settings.repeat ? "on" : "off"
-    )
-
-    sendSonosRequest(settings.speaker, "playlist", settings.playlist)
-  } else {
-    log.debug "Not a trigger mode; doing nothing"
+  
+  if (!settings.modes.contains(mode)) {
+    log.debug "Mode ${mode} is not in the list of modes ${settings.modes}; doing nothing"
+	return false
   }
+  
+  if (duringQuietHours()) {
+    log.debug "Quiet hours are in effect; doing nothing"
+    return false
+  }
+
+  log.debug "Mode ${mode} is in the list of modes ${settings.modes} playing ${settings.playlist} at vol. ${settings.volume} on ${settings.speaker}"
+  sendSonosRequest(settings.speaker, "volume", settings.volume)
+
+  sendSonosRequest(
+    settings.speaker,
+    "shuffle",
+    settings.shuffle ? "on" : "off"
+  )
+
+  sendSonosRequest(
+    settings.speaker,
+    "repeat",
+    settings.repeat ? "on" : "off"
+  )
+
+  sendSonosRequest(settings.speaker, "playlist", settings.playlist)
 }
 
 /* Get the Node Sonos HTTP API version of a capability.musicPlayer name.
