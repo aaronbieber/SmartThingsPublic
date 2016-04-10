@@ -1,5 +1,5 @@
 /**
- *  Sonos HTTP Alarm
+ *  Play Sonos Playlist
  *
  *  Copyright 2016 Aaron Bieber
  *
@@ -12,6 +12,10 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *  ---
+ *
+ *  This SmartApp allows you to play a Sonos playlist by name on a specific Sonos speaker using the Node Sonos HTTP
+ *  API server (https://github.com/jishi/node-sonos-http-api) when one of a list of modes is entered.
  */
 definition(
   name: "Play Sonos Playlist",
@@ -32,7 +36,7 @@ preferences {
       style: "external",
       url: "https://github.com/jishi/node-sonos-http-api")
 
-    input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1.:5005")
+    input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1:5005")
     input(name: "speaker", type: "capability.musicPlayer", title: "Play on which speaker?")
     input(name: "volume", type: "number", range: "1..100", title: "Set volume to (percent)")
     input(name: "shuffle", type: "bool", title: "Shuffle?")
@@ -56,7 +60,7 @@ def updated() {
 }
 
 def initialize() {
-  log.debug "Initializing the schedule"
+  log.debug "Attaching mode change handler"
   subscribe(location, "mode", modeChangeHandler)
 }
 
@@ -85,8 +89,16 @@ def modeChangeHandler(event) {
   }
 }
 
+/* Get the Node Sonos HTTP API version of a capability.musicPlayer name.
+ * This is acquired by coercing the musicPlayer to a string to get its
+ * SmartThings name, removing "Sonos" from the end, and lowercasing it.
+ */
+def getMusicPlayerName(player) {
+  return player.toString().toLowerCase().replace(" sonos", "").replace(" ", "%20")
+}
+
 def sendSonosRequest(speaker, action, value) {
-  def speakerName = speaker.toLowerCase().replace(" ", "%20")
+  def speakerName = getMusicPlayerName(speaker)
   def actionName = action.replace(" ", "%20")
   def valueName = value.toString().replace(" ", "%20")
   def command = new physicalgraph.device.HubAction(
