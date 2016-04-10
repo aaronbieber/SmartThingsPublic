@@ -24,9 +24,19 @@ definition(
   iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
 preferences {
-  section("Configure") {
-    input(name: "speaker", type: "text", title: "Which speaker? Lowercase, please")
-    input(name: "volume", type: "number", title: "Volume (1-100)")
+  section("Configuration") {
+    paragraph "This SmartApp requires the Node Sonos HTTP API server to be running on your network; tap the link below to visit the project on Github."
+    href(
+      name: "node-sonos-http-api",
+      title: "Node Sonos HTTP API",
+      style: "external",
+      url: "https://github.com/jishi/node-sonos-http-api")
+
+    input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1.:5005")
+    input(name: "speaker", type: "capability.musicPlayer", title: "Play on which speaker?")
+    input(name: "volume", type: "number", range: "1..100", title: "Set volume to (percent)")
+    input(name: "shuffle", type: "bool", title: "Shuffle?")
+    input(name: "repeat", type: "bool", title: "Repeat?")
     input(name: "playlist", type: "text", title: "Sonos playlist to play")
     input(name: "modes", type: "mode", title: "Play for which modes?", multiple: true)
   }
@@ -56,8 +66,19 @@ def modeChangeHandler(event) {
   if (settings.modes.contains(mode)) {
     log.debug "Mode ${mode} is in the list of modes ${settings.modes}; playing ${settings.playlist} at vol. ${settings.volume} on ${settings.speaker}"
     sendSonosRequest(settings.speaker, "volume", settings.volume)
-    sendSonosRequest(settings.speaker, "shuffle", "on")
-    sendSonosRequest(settings.speaker, "repeat", "on")
+
+    sendSonosRequest(
+      settings.speaker,
+      "shuffle",
+      settings.shuffle ? "on" : "off"
+    )
+
+    sendSonosRequest(
+      settings.speaker,
+      "repeat",
+      settings.repeat ? "on" : "off"
+    )
+
     sendSonosRequest(settings.speaker, "playlist", settings.playlist)
   } else {
     log.debug "Not a trigger mode; doing nothing"
@@ -65,13 +86,13 @@ def modeChangeHandler(event) {
 }
 
 def sendSonosRequest(speaker, action, value) {
-  def speakerName = speaker.replace(" ", "%20")
+  def speakerName = speaker.toLowerCase().replace(" ", "%20")
   def actionName = action.replace(" ", "%20")
   def valueName = value.toString().replace(" ", "%20")
   def command = new physicalgraph.device.HubAction(
     method: "GET",
     path: "/${speakerName}/${actionName}/${valueName}",
-    headers: [HOST: "192.168.10.10:5005"])
+    headers: [HOST: settings.nodeServer])
 
   log.debug "Sending command: ${command}"
   sendHubCommand(command)
