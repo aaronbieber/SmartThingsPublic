@@ -46,9 +46,9 @@ preferences {
     }
   }
 
-  page(name: "pageTwo", title: "Trigger settings", uninstall: true) {
+  page(name: "pageTwo", title: "Trigger settings", uninstall: true, install: true) {
     section("Mode triggers") {
-      input(name: "modes", type: "mode", title: "Play for which modes?", multiple: true, required: true)
+      input(name: "modes", type: "mode", title: "Play for which mode(s)?", multiple: true, required: true)
     }
 
     section("Quiet hours") {
@@ -60,6 +60,8 @@ preferences {
 
       input(name: "quietStart", type: "time", title: "Quiet from", required: false)
       input(name: "quietEnd", type: "time", title: "Quiet until", required: false)
+      
+      label(title: "Assign a name")
     }
   }
 }
