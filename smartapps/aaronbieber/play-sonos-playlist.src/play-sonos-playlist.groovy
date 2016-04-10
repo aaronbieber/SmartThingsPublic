@@ -60,7 +60,16 @@ preferences {
 
       input(name: "quietStart", type: "time", title: "Quiet from", required: false)
       input(name: "quietEnd", type: "time", title: "Quiet until", required: false)
-      
+    }
+
+    section("Notifications") {
+      input(name: "notifyOnPlay", type: "bool", title: "Notify on play?",
+            description: "Send a push notification when this playlist is triggered.")
+      input(name: "notifyOnQuiet", type: "bool", title: "Notify on quiet?",
+            description: "If you're using quiet hours, send a push notification if this playlist is triggered during that time.")
+    }
+
+    section {
       label(title: "Assign a name")
     }
   }
@@ -122,10 +131,21 @@ def modeChangeHandler(event) {
   
   if (duringQuietHours()) {
     log.debug "Quiet hours are in effect; doing nothing"
+    
+    if (settings.notifyOnQuiet) {
+      sendPush("Your \"${settings.playlist}\" playlist would have played on \"${settings.speaker}\", but it is quiet time.")
+    }
+    
     return false
   }
 
+  // Playing will begin!
   log.debug "Mode ${mode} is in the list of modes ${settings.modes} playing ${settings.playlist} at vol. ${settings.volume} on ${settings.speaker}"
+  
+  if (settings.notifyOnPlay) {
+    sendPush("Your \"${settings.playlist}\" playlist is playing on \"${settings.speaker}.\"")
+  }
+  
   sendSonosRequest(settings.speaker, "volume", settings.volume)
 
   sendSonosRequest(
