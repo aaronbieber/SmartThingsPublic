@@ -28,43 +28,82 @@ definition(
   iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
 preferences {
-  page name: "pageOne", nextPage: "pageTwo"
-  page name: "pageTwo"
+  page name: "pageStart", nextPage: "pageTriggers"
+  page name: "pageTriggers", nextPage: "pageControlType"
+  page name: "pageControlType"
   page name: "pagePlaylist"
   page name: "pagePreset"
 }
 
-def pageOne() {
-    dynamicPage(name: "pageOne", title: "Speaker setup", uninstall: true, install: false) {
-      section {
-        paragraph "This SmartApp requires the Node Sonos HTTP API server to be running on your network; tap the link below to visit the project on Github."
+def pageStart() {
+  dynamicPage(name: "pageStart", title: "Basic Configuration", uninstall: true, install: false) {
+    section {
+      paragraph "This SmartApp requires the Node Sonos HTTP API server to be running on your network; tap the link below to visit the project on Github."
+      href(
+          name: "node-sonos-http-api",
+          title: "Node Sonos HTTP API",
+          description: "Tap to visit the website",
+          style: "external",
+          url: "https://github.com/jishi/node-sonos-http-api")
+
+      input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1:5005")
+    }
+
+    section {
+      input(name: "modes", type: "mode", title: "Play for which mode(s)?", multiple: true, required: true)
+    }
+
+    section {
+      label(title: "Assign a name")
+    }
+  }
+}
+
+def pageTriggers() {
+  dynamicPage(name: "pageTriggers", title: "Trigger settings", uninstall: true, install: false) {
+
+    section("Quiet hours") {
+      paragraph(
+        "If the mode change is triggered between these hours, do not play. This is useful " +
+        "if you often come home late and don't want your 'welcome home' playlist to wake the house. " +
+        "Note that if the start time is after the end time, we will assume that quiet hours cross " +
+        "the midnight boundary.")
+
+      input(name: "quietStart", type: "time", title: "Quiet from", required: false)
+      input(name: "quietEnd", type: "time", title: "Quiet until", required: false)
+    }
+
+    section("Notifications") {
+      input(name: "notifyOnPlay", type: "bool", title: "Notify on play?",
+            description: "Send a push notification when this playlist is triggered.")
+      input(name: "notifyOnQuiet", type: "bool", title: "Notify on quiet?",
+            description: "If you're using quiet hours, send a push notification if this playlist is triggered during that time.")
+    }
+  }
+}
+
+def pageControlType() {
+  dynamicPage(name: "pageControlType", title: "Speaker setup", uninstall: true, install: true) {
+    section {
+      input(
+          name: "controlType",
+          title: "Control Type",
+          type: "enum",
+          options: [["Playlist": "Sonos Playlist"], ["Preset": "Sonos HTTP API Preset"]],
+          submitOnChange: true,
+          multiple: false,
+          required: false
+      )
+      if (controlType) {
         href(
-            name: "node-sonos-http-api",
-            title: "Node Sonos HTTP API",
-            style: "external",
-            url: "https://github.com/jishi/node-sonos-http-api")
-
-        input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1:5005")
-
-        input(
-            name: "controlType",
-            title: "Control Type",
-            type: "enum",
-            options: [["Playlist": "Sonos Playlist"], ["Preset": "Sonos HTTP API Preset"]],
-            submitOnChange: true,
-            multiple: false,
-            required: false
+            name: "href${controlType}",
+            page: "page${controlType}",
+            title: "${controlType} Settings",
+            description: controlTypeDesc()
         )
-        if (controlType) {
-          href(
-              name: "href${controlType}",
-              page: "page${controlType}",
-              title: "${controlType} Settings",
-              description: controlTypeDesc()
-          )
-        }
       }
     }
+  }
 }
 
 def controlTypeDesc() {
@@ -104,36 +143,6 @@ def pagePreset() {
   dynamicPage(name: "pagePreset", title: "Preset Settings", install: false, uninstall: false) {
     section {
       input(name: "preset", type: "text", title: "Preset name")
-    }
-  }
-}
-
-def pageTwo() {
-  dynamicPage(name: "pageTwo", title: "Trigger settings", uninstall: true, install: true) {
-    section("Mode triggers") {
-      input(name: "modes", type: "mode", title: "Play for which mode(s)?", multiple: true, required: true)
-    }
-
-    section("Quiet hours") {
-      paragraph(
-        "If the mode change is triggered between these hours, do not play. This is useful " +
-        "if you often come home late and don't want your 'welcome home' playlist to wake the house. " +
-        "Note that if the start time is after the end time, we will assume that quiet hours cross " +
-        "the midnight boundary.")
-
-      input(name: "quietStart", type: "time", title: "Quiet from", required: false)
-      input(name: "quietEnd", type: "time", title: "Quiet until", required: false)
-    }
-
-    section("Notifications") {
-      input(name: "notifyOnPlay", type: "bool", title: "Notify on play?",
-            description: "Send a push notification when this playlist is triggered.")
-      input(name: "notifyOnQuiet", type: "bool", title: "Notify on quiet?",
-            description: "If you're using quiet hours, send a push notification if this playlist is triggered during that time.")
-    }
-
-    section {
-      label(title: "Assign a name")
     }
   }
 }
