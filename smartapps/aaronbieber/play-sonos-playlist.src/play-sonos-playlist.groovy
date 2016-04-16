@@ -28,38 +28,88 @@ definition(
   iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
 
 preferences {
-  page(name: "pageOne", title: "Speaker setup", nextPage: "pageTwo", uninstall: true) {
-    section {
-      paragraph "This SmartApp requires the Node Sonos HTTP API server to be running on your network; tap the link below to visit the project on Github."
-      href(
-        name: "node-sonos-http-api",
-        title: "Node Sonos HTTP API",
-        style: "external",
-        url: "https://github.com/jishi/node-sonos-http-api")
+  page name: "pageOne", nextPage: "pageTwo"
+  page name: "pageTwo"
+  page name: "pagePlaylist"
+  page name: "pagePreset"
+}
 
-      input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1:5005")
-
-      input(
-          name: "controlType",
-          title: "Control Type",
-          type: "enum",
-          options: [["Playlist": "Sonos Playlist"], ["Preset": "Sonos HTTP API Preset"]],
-          submitOnChange: true,
-          multiple: false,
-          required: false
-      )
-      if (controlType) {
+def pageOne() {
+    dynamicPage(name: "pageOne", title: "Speaker setup", uninstall: true, install: false) {
+      section {
+        paragraph "This SmartApp requires the Node Sonos HTTP API server to be running on your network; tap the link below to visit the project on Github."
         href(
-            name: "href${controlType}",
-            page: "page${controlType}",
-            title: "${controlType} Settings",
-            description: controlTypeDesc()
+            name: "node-sonos-http-api",
+            title: "Node Sonos HTTP API",
+            style: "external",
+            url: "https://github.com/jishi/node-sonos-http-api")
+
+        input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1:5005")
+
+        input(
+            name: "controlType",
+            title: "Control Type",
+            type: "enum",
+            options: [["Playlist": "Sonos Playlist"], ["Preset": "Sonos HTTP API Preset"]],
+            submitOnChange: true,
+            multiple: false,
+            required: false
         )
+        if (controlType) {
+          href(
+              name: "href${controlType}",
+              page: "page${controlType}",
+              title: "${controlType} Settings",
+              description: controlTypeDesc()
+          )
+        }
       }
     }
-  }
+}
 
-  page(name: "pageTwo", title: "Trigger settings", uninstall: true, install: true) {
+def controlTypeDesc() {
+  def desc = ""
+  if (controlType == "Playlist") {
+  	if (playlist && speaker && volume) {
+      desc = "Play ${playlist} on ${speaker} at volume ${volume}"
+    } else {
+      desc = "Tap to configure"
+    }
+  }
+  
+  if (controlType == "Preset") {
+    if (preset) {
+      desc = "Launch preset ${preset}"
+    } else {
+      desc = "Tap to configure"
+    }
+  }
+  
+  desc
+}
+
+def pagePlaylist() {
+  dynamicPage(name: "pagePlaylist", title: "Playlist Settings", install: false, uninstall: false) {
+    section {
+      input(name: "speaker", type: "capability.musicPlayer", title: "Play on which speaker?")
+      input(name: "volume", type: "number", range: "1..100", title: "Set volume to (percent)")
+      input(name: "shuffle", type: "bool", title: "Shuffle?")
+      input(name: "repeat", type: "bool", title: "Repeat?")
+      input(name: "playlist", type: "text", title: "Sonos playlist to play")
+    }
+  }
+}
+
+def pagePreset() {
+  dynamicPage(name: "pagePreset", title: "Preset Settings", install: false, uninstall: false) {
+    section {
+      input(name: "preset", type: "text", title: "Preset name")
+    }
+  }
+}
+
+def pageTwo() {
+  dynamicPage(name: "pageTwo", title: "Trigger settings", uninstall: true, install: true) {
     section("Mode triggers") {
       input(name: "modes", type: "mode", title: "Play for which mode(s)?", multiple: true, required: true)
     }
@@ -84,26 +134,6 @@ preferences {
 
     section {
       label(title: "Assign a name")
-    }
-  }
-}
-
-def pagePlaylist() {
-  dynamicPage(name: "pagePlaylist", title: "Playlist Settings", install: false, uninstall: false) {
-    section {
-      input(name: "speaker", type: "capability.musicPlayer", title: "Play on which speaker?")
-      input(name: "volume", type: "number", range: "1..100", title: "Set volume to (percent)")
-      input(name: "shuffle", type: "bool", title: "Shuffle?")
-      input(name: "repeat", type: "bool", title: "Repeat?")
-      input(name: "playlist", type: "text", title: "Sonos playlist to play")
-    }
-  }
-}
-
-def pagePreset() {
-  dynamicPage(name: "pagePreset", title: "Preset Settings", install: false, uninstall: false) {
-    section {
-      input(name: "preset", type: "text", title: "Preset name")
     }
   }
 }
