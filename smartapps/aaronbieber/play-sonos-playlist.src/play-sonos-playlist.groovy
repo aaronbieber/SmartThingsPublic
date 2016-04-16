@@ -38,11 +38,24 @@ preferences {
         url: "https://github.com/jishi/node-sonos-http-api")
 
       input(name: "nodeServer", type: "text", title: "Your Sonos HTTP API server address, like 192.168.1.1:5005")
-      input(name: "speaker", type: "capability.musicPlayer", title: "Play on which speaker?")
-      input(name: "volume", type: "number", range: "1..100", title: "Set volume to (percent)")
-      input(name: "shuffle", type: "bool", title: "Shuffle?")
-      input(name: "repeat", type: "bool", title: "Repeat?")
-      input(name: "playlist", type: "text", title: "Sonos playlist to play")
+
+      input(
+          name: "controlType",
+          title: "Control Type",
+          type: "enum",
+          options: [["Playlist", "Sonos Playlist"], ["Preset", "Sonos HTTP API Preset"]],
+          submitOnChange: true,
+          multiple: false,
+          required: false
+      )
+      if (controlType) {
+        href(
+            name: "href${controlType}",
+            page: "page${controlType}",
+            title: "${controlType} Settings",
+            description: controlTypeDesc()
+        )
+      }
     }
   }
 
@@ -71,6 +84,26 @@ preferences {
 
     section {
       label(title: "Assign a name")
+    }
+  }
+}
+
+def pagePlaylist() {
+  dynamicPage(name: "pagePlaylist", title: "Playlist Settings", install: false, uninstall: false) {
+    section {
+      input(name: "speaker", type: "capability.musicPlayer", title: "Play on which speaker?")
+      input(name: "volume", type: "number", range: "1..100", title: "Set volume to (percent)")
+      input(name: "shuffle", type: "bool", title: "Shuffle?")
+      input(name: "repeat", type: "bool", title: "Repeat?")
+      input(name: "playlist", type: "text", title: "Sonos playlist to play")
+    }
+  }
+}
+
+def pagePreset() {
+  dynamicPage(name: "pagePreset", title: "Preset Settings", install: false, uninstall: false) {
+    section {
+      input(name: "preset", type: "text", title: "Preset name")
     }
   }
 }
@@ -140,27 +173,43 @@ def modeChangeHandler(event) {
   }
 
   // Playing will begin!
-  log.debug "Mode ${mode} is in the list of modes ${settings.modes} playing ${settings.playlist} at vol. ${settings.volume} on ${settings.speaker}"
-  
-  if (settings.notifyOnPlay) {
-    sendPush("Your \"${settings.playlist}\" playlist is playing on \"${settings.speaker}.\"")
-  }
-  
-  sendSonosRequest(settings.speaker, "volume", settings.volume)
+  if (controlType == "Playlist") {
+    log.debug "Mode ${mode} is in the list of modes ${settings.modes}, playing ${settings.playlist} at vol. ${settings.volume} on ${settings.speaker}."
 
-  sendSonosRequest(
+    if (settings.notifyOnPlay) {
+      sendPush("Your \"${settings.playlist}\" playlist is playing on \"${settings.speaker}.\"")
+    }
+    runPlaylist()
+    return true
+  }
+
+  if (controlType == "Preset") {
+    log.debug "Mode ${mode} is in the list of modes ${settings.modes}, running preset ${settings.preset}."
+    runPreset()
+    return true
+  }
+}
+
+def runPlaylist() {
+  sendSonosSpeakerRequest(settings.speaker, "volume", settings.volume)
+
+  sendSonosSpeakerRequest(
     settings.speaker,
     "shuffle",
     settings.shuffle ? "on" : "off"
   )
 
-  sendSonosRequest(
+  sendSonosSpeakerRequest(
     settings.speaker,
     "repeat",
     settings.repeat ? "on" : "off"
   )
 
-  sendSonosRequest(settings.speaker, "playlist", settings.playlist)
+  sendSonosSpeakerRequest(settings.speaker, "playlist", settings.playlist)
+}
+
+def runPreset() {
+  sendSonosPresetRequest(settings.preset)
 }
 
 /* Get the Node Sonos HTTP API version of a capability.musicPlayer name.
@@ -182,8 +231,10 @@ def getMusicPlayerName(player) {
  * @param capability.musicPlayer speaker The musicPlayer to play on
  * @param string                 action  The action to take (one of "shuffle", "repeat", or "playlist")
  * @param string                 value   The action's value ("on", "off", or a playlist name)
+ *
+ * @return void
  */
-def sendSonosRequest(speaker, action, value) {
+def sendSonosSpeakerRequest(speaker, action, value) {
   def speakerName = getMusicPlayerName(speaker)
   def actionName = action.replace(" ", "%20")
   def valueName = value.toString().replace(" ", "%20")
@@ -191,6 +242,23 @@ def sendSonosRequest(speaker, action, value) {
     method: "GET",
     path: "/${speakerName}/${actionName}/${valueName}",
     headers: [HOST: settings.nodeServer])
+
+  log.debug "Sending command: ${command}"
+  sendHubCommand(command)
+}
+
+/* Send a command to the local Node Sonos HTTP API server to start a "preset."
+ *
+ * @param string preset The name of the preset in presets.json on the Node server.
+ *
+ * @return void
+ */
+def sendSonosPresetRequest(preset) {
+  def presetName = preset.replace(" ", "%20")
+  def command = new physicalgraph.device.HubAction(
+      method: "GET",
+      path: "/preset/${presetName}",
+      headers: [HOST: settings.nodeServer])
 
   log.debug "Sending command: ${command}"
   sendHubCommand(command)
