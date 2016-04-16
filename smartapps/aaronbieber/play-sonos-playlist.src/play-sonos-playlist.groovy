@@ -43,7 +43,7 @@ preferences {
           name: "controlType",
           title: "Control Type",
           type: "enum",
-          options: [["Playlist", "Sonos Playlist"], ["Preset", "Sonos HTTP API Preset"]],
+          options: [["Playlist": "Sonos Playlist"], ["Preset": "Sonos HTTP API Preset"]],
           submitOnChange: true,
           multiple: false,
           required: false
